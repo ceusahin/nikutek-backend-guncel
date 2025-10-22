@@ -1,14 +1,13 @@
-# Temel Java 17 imajı
-FROM eclipse-temurin:17-jdk
-
-# Çalışma dizinini ayarla
+# ---- 1. Aşama: Build ----
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Jar dosyasını kopyala
-COPY target/*.jar app.jar
-
-# Port (Spring Boot varsayılanı 8080)
+# ---- 2. Aşama: Çalıştırma ----
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-
-# Uygulamayı çalıştır
 ENTRYPOINT ["java", "-jar", "app.jar"]
