@@ -35,7 +35,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .authorizeHttpRequests(auth -> auth
+                    // OPTIONS request'lerini her zaman izin ver (CORS preflight için kritik)
+                    .requestMatchers(request -> "OPTIONS".equals(request.getMethod())).permitAll()
+                    .anyRequest().permitAll()
+                )
                 .httpBasic(Customizer.withDefaults());
 
         return http.build();
@@ -44,14 +48,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Origin URL'lerinin sonunda / olmamalı - Safari ve Edge için kritik
+        
+        // Specific origins - Safari ve Edge için sonunda / olmamalı
         config.setAllowedOrigins(List.of(
             "http://localhost:5173",
+            "http://localhost:3000",
             "https://nikutek.com.tr",
             "https://www.nikutek.com.tr",
-            "https://admin.nikutek.com.tr",
             "https://barissmutllu.com"
         ));
+        
+        // Pattern ile tüm nikutek subdomain'lerini kabul et (admin dahil)
+        config.setAllowedOriginPatterns(List.of(
+            "https://*.nikutek.com.tr"
+        ));
+        
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         
         // allowCredentials(true) ile wildcard (*) kullanılamaz - Safari engeller
@@ -62,15 +73,20 @@ public class SecurityConfig {
             "Origin",
             "X-Requested-With",
             "Access-Control-Request-Method",
-            "Access-Control-Request-Headers"
+            "Access-Control-Request-Headers",
+            "X-Auth-Token",
+            "Cache-Control",
+            "Pragma"
         ));
         
-        // Response headers'ı expose et
+        // Response headers'ı expose et - Admin paneli için ekstra header'lar
         config.setExposedHeaders(List.of(
             "Authorization",
             "Content-Type",
             "Access-Control-Allow-Origin",
-            "Access-Control-Allow-Credentials"
+            "Access-Control-Allow-Credentials",
+            "X-Auth-Token",
+            "X-Total-Count"
         ));
         
         config.setAllowCredentials(true);
