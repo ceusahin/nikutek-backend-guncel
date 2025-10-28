@@ -14,6 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/technologies")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class TechnologyController {
 
     private final TechnologyService technologyService;

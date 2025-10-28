@@ -19,7 +19,9 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
+                )
                 .httpBasic(Customizer.withDefaults());
 
         return http.build();
@@ -29,16 +31,16 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 🔹 Sonunda "/" olmamalı!
+        // 🔹 Sadece "/" olmayan tam domain adresleri
         config.setAllowedOrigins(Arrays.asList(
                 "http://localhost:5173",
-                "https://nikutek.com.tr",
-                "https://admin.nikutek.com.tr",
-                "https://barissmutllu.com"
+                "https://www.nikutek.com.tr",
+                "https://admin.nikutek.com.tr"
         ));
 
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
+        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

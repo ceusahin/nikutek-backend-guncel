@@ -12,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/favicon")
+@CrossOrigin(origins = "*")
 public class FaviconController {
 
     private final FaviconService faviconService;

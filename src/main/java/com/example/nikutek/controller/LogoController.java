@@ -12,6 +12,7 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/logo")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class LogoController {
 
     private final LogoService logoService;
