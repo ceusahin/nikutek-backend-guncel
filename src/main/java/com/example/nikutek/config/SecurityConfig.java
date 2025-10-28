@@ -31,7 +31,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 🔹 Sadece "/" olmayan tam domain adresleri
+        // 🔹 Tarayıcıların gördüğü domainleri eksiksiz yaz
         config.setAllowedOrigins(Arrays.asList(
                 "http://localhost:5173",
                 "https://www.nikutek.com.tr",

@@ -8,7 +8,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/contact-info")
-@CrossOrigin(origins = "*")
 public class ContactInfoController {
 
     private final ContactInfoService contactInfoService;

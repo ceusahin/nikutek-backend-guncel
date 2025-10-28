@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "map_settings")
+@Table(name = "map_settings", schema = "nikutek")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,7 +15,7 @@ public class MapSettings {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "iframe_url", nullable = false, columnDefinition = "text")
+    @Column(name = "iframeUrl", nullable = false, columnDefinition = "text")
     private String iframeUrl;
 
     @Column(name = "is_active", nullable = false)

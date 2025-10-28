@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/admin")
-@CrossOrigin(origins = "*")
 public class AdminLogController {
 
     private final AdminLogRepository logRepo;

@@ -13,7 +13,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/main-hero")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class MainHeroController {
 
     private final MainHeroService mainHeroService;

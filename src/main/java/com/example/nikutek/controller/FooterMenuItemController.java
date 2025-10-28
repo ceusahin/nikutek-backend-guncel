@@ -12,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/footer-menu-item")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class FooterMenuItemController {
 
     private final FooterMenuItemService itemService;

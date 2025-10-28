@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/stats")
-@CrossOrigin(origins = "*")
 public class StatsController {
 
     private final VisitRepository visitRepository;

@@ -15,7 +15,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/references")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ReferencesController {
 
     private final ReferencesService referencesService;
