@@ -24,6 +24,9 @@ public class Technology {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "display_order")
+    private Integer displayOrder;
+
     @OneToMany(mappedBy = "technology", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TechnologyTranslation> translations;
 

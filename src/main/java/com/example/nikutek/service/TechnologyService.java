@@ -26,7 +26,7 @@ public class TechnologyService {
     private final Cloudinary cloudinary;
 
     public List<TechnologyDTO> getAllTechnologies() {
-        return technologyRepository.findAll()
+        return technologyRepository.findAllOrdered()
                 .stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
@@ -106,11 +106,29 @@ public class TechnologyService {
         }
     }
 
+    // Sıralama Güncelle
+    @Transactional
+    public void reorderTechnologies(List<ReorderItem> items) {
+        for (ReorderItem item : items) {
+            Technology technology = technologyRepository.findById(item.getId())
+                    .orElseThrow(() -> new RuntimeException("Technology bulunamadı: " + item.getId()));
+            technology.setDisplayOrder(item.getDisplayOrder());
+            technologyRepository.save(technology);
+        }
+    }
+
+    @lombok.Data
+    public static class ReorderItem {
+        private Long id;
+        private Integer displayOrder;
+    }
+
     private TechnologyDTO toDTO(Technology entity) {
         TechnologyDTO dto = new TechnologyDTO();
         dto.setId(entity.getId());
         dto.setActive(entity.isActive());
         dto.setImageUrl(entity.getImageUrl());
+        dto.setDisplayOrder(entity.getDisplayOrder());
 
         dto.setTranslations(translationRepository.findByTechnology(entity)
                 .stream()

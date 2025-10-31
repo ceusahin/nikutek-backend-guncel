@@ -11,6 +11,7 @@ public class ProductDTO {
     private Long parentId;
     private boolean hasChildren;
     private int level;
+    private Integer displayOrder;
 
     private List<ProductDTO> children;
     private List<ProductTranslationDTO> translations;

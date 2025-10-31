@@ -49,6 +49,18 @@ public class TechnologyController {
         return ResponseEntity.ok(technologyService.uploadFile(file));
     }
 
+    // Sıralama güncelle
+    @PutMapping("/reorder")
+    public ResponseEntity<Void> reorderTechnologies(@RequestBody ReorderRequest request) {
+        technologyService.reorderTechnologies(request.getItems());
+        return ResponseEntity.ok().build();
+    }
+
+    @Data
+    public static class ReorderRequest {
+        private List<TechnologyService.ReorderItem> items;
+    }
+
     @Data
     public static class TechnologyRequest {
         private Long id;

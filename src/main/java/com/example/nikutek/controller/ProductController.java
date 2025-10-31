@@ -54,5 +54,17 @@ public class ProductController {
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(productService.uploadFile(file));
     }
+
+    // 🔸 Sıralama güncelle (sadece parent ürünler için)
+    @PutMapping("/reorder")
+    public ResponseEntity<Void> reorderProducts(@RequestBody ReorderRequest request) {
+        productService.reorderProducts(request.getItems());
+        return ResponseEntity.ok().build();
+    }
+
+    @Data
+    public static class ReorderRequest {
+        private List<ProductService.ReorderItem> items;
+    }
 }
 

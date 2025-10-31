@@ -27,7 +27,7 @@ public class BlogPostService {
 
     // --- List ---
     public List<BlogPostDTO> getAll() {
-        return blogPostRepository.findAll().stream()
+        return blogPostRepository.findAllOrdered().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -122,6 +122,23 @@ public class BlogPostService {
         }
     }
 
+    // --- Sıralama Güncelle ---
+    @Transactional
+    public void reorderBlogPosts(List<ReorderItem> items) {
+        for (ReorderItem item : items) {
+            BlogPost blogPost = blogPostRepository.findById(item.getId())
+                    .orElseThrow(() -> new RuntimeException("Blog post bulunamadı: " + item.getId()));
+            blogPost.setDisplayOrder(item.getDisplayOrder());
+            blogPostRepository.save(blogPost);
+        }
+    }
+
+    @lombok.Data
+    public static class ReorderItem {
+        private Long id;
+        private Integer displayOrder;
+    }
+
     // --- Helper: YouTube video ID extract ---
     private String extractYoutubeVideoId(String videoLink) {
         if(videoLink == null) return null;
@@ -167,6 +184,7 @@ public class BlogPostService {
                 .type(blogPost.getType())
                 .videoLink(videoLink)
                 .active(blogPost.getActive())
+                .displayOrder(blogPost.getDisplayOrder())
                 .translations(translations)
                 .images(images)
                 .build();

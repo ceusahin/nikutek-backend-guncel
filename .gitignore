@@ -33,3 +33,5 @@ build/
 .vscode/
 
 .env
+database_migration_display_order.sql
+BACKEND_IMPLEMENTATION_SUMMARY.md

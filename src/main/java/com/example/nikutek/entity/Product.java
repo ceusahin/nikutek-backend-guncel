@@ -30,4 +30,7 @@ public class Product {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Column(name = "display_order")
+    private Integer displayOrder;
 }

@@ -57,6 +57,18 @@ public class BlogPostController {
         return ResponseEntity.noContent().build();
     }
 
+    // Sıralama güncelle
+    @PutMapping("/reorder")
+    public ResponseEntity<Void> reorderBlogPosts(@RequestBody ReorderRequest request) {
+        service.reorderBlogPosts(request.getItems());
+        return ResponseEntity.ok().build();
+    }
+
+    @lombok.Data
+    public static class ReorderRequest {
+        private List<BlogPostService.ReorderItem> items;
+    }
+
     private void handleImages(BlogPostDTO dto, MultipartFile[] images) {
         if (images != null && images.length > 0) {
             if (dto.getImages() == null) dto.setImages(new ArrayList<>());

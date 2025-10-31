@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.Data;
 
 @Service
 @RequiredArgsConstructor
@@ -26,9 +27,9 @@ public class ProductService {
     private final LanguageRepository languageRepository;
     private final Cloudinary cloudinary;
 
-    // 🔸 Tüm ürünleri çek (ana + alt)
+    // 🔸 Tüm ürünleri çek (ana + alt) - displayOrder'e göre sıralı
     public List<ProductDTO> getAllProducts() {
-        return productRepository.findByParentIsNull()
+        return productRepository.findParentProductsOrdered()
                 .stream()
                 .map(p -> toDTO(p, 0))
                 .toList();
@@ -171,6 +172,27 @@ public class ProductService {
         }
     }
 
+    // 🔸 Sıralama güncelle (sadece parent ürünler için)
+    @Transactional
+    public void reorderProducts(List<ReorderItem> items) {
+        for (ReorderItem item : items) {
+            Product product = productRepository.findById(item.getId())
+                    .orElseThrow(() -> new RuntimeException("Ürün bulunamadı: " + item.getId()));
+            
+            // Güvenlik: Sadece parent ürünleri güncelle
+            if (product.getParent() == null) {
+                product.setDisplayOrder(item.getDisplayOrder());
+                productRepository.save(product);
+            }
+        }
+    }
+
+    @Data
+    public static class ReorderItem {
+        private Long id;
+        private Integer displayOrder;
+    }
+
 
     // 🔸 DTO dönüşümü
     private ProductDTO toDTO(Product product, int level) {
@@ -181,6 +203,7 @@ public class ProductService {
         dto.setParentId(product.getParent() != null ? product.getParent().getId() : null);
         dto.setLevel(level);
         dto.setHasChildren(!product.getChildren().isEmpty());
+        dto.setDisplayOrder(product.getDisplayOrder());
 
         // Translations
         dto.setTranslations(

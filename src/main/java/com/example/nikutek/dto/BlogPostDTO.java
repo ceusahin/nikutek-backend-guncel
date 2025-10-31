@@ -15,6 +15,7 @@ public class BlogPostDTO {
     private BlogPostType type;
     private String videoLink;
     private Boolean active;
+    private Integer displayOrder;
     private List<BlogPostTranslationDTO> translations;
     private List<BlogPostImageDTO> images;
 }
