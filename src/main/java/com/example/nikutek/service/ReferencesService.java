@@ -27,28 +27,42 @@ public class ReferencesService {
     private final LanguageRepository languageRepository;
 
     // 🌍 Tüm endüstrileri, seçilen dile göre getir
+    // Sadece seçilen dilde çevirisi olan ve şirketleri olan endüstrileri döndür
     public List<IndustryDTO> getAllByLanguageCode(String code) {
         Language language = languageRepository.findByCode(code)
                 .orElseThrow(() -> new RuntimeException("Dil bulunamadı: " + code));
 
-        return industryRepository.findAll().stream().map(industry -> {
-            ReferencesIndustryTranslation translation =
-                    translationRepository.findByIndustryAndLanguage(industry, language);
+        return industryRepository.findAll().stream()
+                .filter(industry -> {
+                    // Önce çevirisi var mı kontrol et
+                    ReferencesIndustryTranslation translation =
+                            translationRepository.findByIndustryAndLanguage(industry, language);
+                    if (translation == null || translation.getName() == null || translation.getName().trim().isEmpty()) {
+                        return false; // Bu dilde çevirisi yoksa filtrele
+                    }
+                    // Şirketleri var mı kontrol et
+                    List<ReferencesCompany> companies = companyRepository.findByIndustry(industry);
+                    return companies != null && !companies.isEmpty(); // Şirketleri yoksa filtrele
+                })
+                .map(industry -> {
+                    ReferencesIndustryTranslation translation =
+                            translationRepository.findByIndustryAndLanguage(industry, language);
 
-            List<ReferencesCompany> companies = companyRepository.findByIndustry(industry);
+                    List<ReferencesCompany> companies = companyRepository.findByIndustry(industry);
 
-            IndustryDTO dto = new IndustryDTO();
-            dto.setId(industry.getId());
-            dto.setName(translation != null ? translation.getName() : "");
-            dto.setCompanies(companies.stream().map(c -> {
-                CompanyDTO cDto = new CompanyDTO();
-                cDto.setId(c.getId());
-                cDto.setName(c.getName());
-                return cDto;
-            }).collect(Collectors.toList()));
+                    IndustryDTO dto = new IndustryDTO();
+                    dto.setId(industry.getId());
+                    dto.setName(translation != null ? translation.getName() : "");
+                    dto.setCompanies(companies.stream().map(c -> {
+                        CompanyDTO cDto = new CompanyDTO();
+                        cDto.setId(c.getId());
+                        cDto.setName(c.getName());
+                        return cDto;
+                    }).collect(Collectors.toList()));
 
-            return dto;
-        }).collect(Collectors.toList());
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
     // 🧱 Industry ekle/güncelle
