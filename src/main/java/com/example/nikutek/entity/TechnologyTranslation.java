@@ -28,4 +28,7 @@ public class TechnologyTranslation {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "slug", unique = true)
+    private String slug;
 }

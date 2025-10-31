@@ -30,6 +30,14 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
+    // 🔸 Slug'a göre ürün çek (SEO-friendly URL)
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<ProductDTO> getProductBySlug(
+            @PathVariable String slug,
+            @RequestParam(defaultValue = "tr") String lang) {
+        return ResponseEntity.ok(productService.getProductBySlug(slug, lang));
+    }
+
     // 🔸 Ürün kaydet veya güncelle (tek istekle)
     @PostMapping("/save")
     public ResponseEntity<ProductDTO> saveOrUpdateProduct(@RequestBody ProductDTO productDTO) {

@@ -5,6 +5,7 @@ import com.cloudinary.utils.ObjectUtils;
 import com.example.nikutek.dto.ProductDTO;
 import com.example.nikutek.entity.*;
 import com.example.nikutek.repository.*;
+import com.example.nikutek.utils.SlugGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Data;
 
@@ -35,11 +37,22 @@ public class ProductService {
                 .toList();
     }
 
-    // 🔸 ID’ye göre ürün çek
+    // 🔸 ID'ye göre ürün çek
     public ProductDTO getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ürün bulunamadı: " + id));
         return toDTO(product, 0);
+    }
+
+    // 🔸 Slug'a göre ürün çek (dil kodu ile)
+    public ProductDTO getProductBySlug(String slug, String langCode) {
+        Language language = languageRepository.findByCode(langCode)
+                .orElseThrow(() -> new RuntimeException("Dil bulunamadı: " + langCode));
+        
+        ProductTranslation translation = translationRepository.findBySlugAndLanguage(slug, language)
+                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı: " + slug));
+        
+        return toDTO(translation.getProduct(), 0);
     }
 
     // 🔸 Ürün kaydet / güncelle (tam model)
@@ -74,7 +87,12 @@ public class ProductService {
         product = productRepository.save(product);
 
         // 🔹 Translations
-        translationRepository.deleteByProduct(product);
+        // Güncelleme durumunda mevcut translation'ları silme, sadece ilgili olanları güncelle
+        if (dto.getId() != null) {
+            // Mevcut translation'ları sil
+            translationRepository.deleteByProduct(product);
+        }
+        
         if (dto.getTranslations() != null) {
             for (var t : dto.getTranslations()) {
                 Language lang = languageRepository.findByCode(t.getLangCode())
@@ -85,6 +103,33 @@ public class ProductService {
                 trans.setLanguage(lang);
                 trans.setTitle(t.getTitle());
                 trans.setDescription(t.getDescription());
+                
+                // Slug oluştur veya kullan (eğer DTO'da varsa)
+                String slug = t.getSlug();
+                if (slug == null || slug.trim().isEmpty()) {
+                    // Otomatik slug oluştur
+                    slug = SlugGenerator.generateSlug(t.getTitle());
+                }
+                
+                // Unique slug kontrolü
+                Long excludeTranslationId = (dto.getId() != null) ? 
+                    translationRepository.findByProductAndLanguage(product, lang)
+                        .map(ProductTranslation::getId).orElse(null) : null;
+                
+                slug = SlugGenerator.ensureUniqueSlug(
+                    slug,
+                    s -> {
+                        Optional<ProductTranslation> existingOpt = translationRepository.findBySlug(s);
+                        if (existingOpt.isPresent()) {
+                            ProductTranslation existing = existingOpt.get();
+                            return excludeTranslationId == null || !existing.getId().equals(excludeTranslationId);
+                        }
+                        return false;
+                    },
+                    excludeTranslationId
+                );
+                
+                trans.setSlug(slug);
                 translationRepository.save(trans);
             }
         }
@@ -214,6 +259,7 @@ public class ProductService {
                             tDto.setLangCode(t.getLanguage().getCode());
                             tDto.setTitle(t.getTitle());
                             tDto.setDescription(t.getDescription());
+                            tDto.setSlug(t.getSlug());
                             return tDto;
                         }).toList()
         );

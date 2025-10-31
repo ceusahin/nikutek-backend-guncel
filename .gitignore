@@ -35,3 +35,5 @@ build/
 .env
 database_migration_display_order.sql
 BACKEND_IMPLEMENTATION_SUMMARY.md
+database_migration_slug.sql
+SLUG_IMPLEMENTATION_SUMMARY.md

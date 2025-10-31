@@ -5,6 +5,7 @@ import com.cloudinary.utils.ObjectUtils;
 import com.example.nikutek.dto.TechnologyDTO;
 import com.example.nikutek.entity.*;
 import com.example.nikutek.repository.*;
+import com.example.nikutek.utils.SlugGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +32,14 @@ public class TechnologyService {
                 .stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    // 🔸 Slug'a göre teknoloji çek (dil kodu ile)
+    public TechnologyDTO getTechnologyBySlug(String slug, String langCode) {
+        TechnologyTranslation translation = translationRepository.findBySlugAndLanguageCode(slug, langCode)
+                .orElseThrow(() -> new RuntimeException("Teknoloji bulunamadı: " + slug + " (dil: " + langCode + ")"));
+        
+        return toDTO(translation.getTechnology());
     }
 
     public Technology addOrUpdateTechnology(Long id, boolean isActive, String imageUrl) {
@@ -53,7 +63,7 @@ public class TechnologyService {
         technologyRepository.delete(tech);
     }
 
-    public TechnologyTranslation addOrUpdateTranslation(Long technologyId, String langCode, String title, String description) {
+    public TechnologyTranslation addOrUpdateTranslation(Long technologyId, String langCode, String title, String description, String slug) {
         Technology tech = technologyRepository.findById(technologyId)
                 .orElseThrow(() -> new RuntimeException("Technology bulunamadı: " + technologyId));
 
@@ -70,6 +80,28 @@ public class TechnologyService {
         translation.setLanguage(language);
         translation.setTitle(title);
         translation.setDescription(description);
+
+        // Slug oluştur veya kullan
+        if (slug == null || slug.trim().isEmpty()) {
+            slug = SlugGenerator.generateSlug(title);
+        }
+
+        // Unique slug kontrolü
+        Long excludeTranslationId = translation.getId();
+        slug = SlugGenerator.ensureUniqueSlug(
+            slug,
+            s -> {
+                Optional<TechnologyTranslation> existingOpt = translationRepository.findBySlug(s);
+                if (existingOpt.isPresent()) {
+                    TechnologyTranslation existing = existingOpt.get();
+                    return excludeTranslationId == null || !existing.getId().equals(excludeTranslationId);
+                }
+                return false;
+            },
+            excludeTranslationId
+        );
+
+        translation.setSlug(slug);
 
         return translationRepository.save(translation);
     }
@@ -137,6 +169,7 @@ public class TechnologyService {
                     tdto.setLangCode(t.getLanguage().getCode());
                     tdto.setTitle(t.getTitle());
                     tdto.setDescription(t.getDescription());
+                    tdto.setSlug(t.getSlug());
                     return tdto;
                 }).collect(Collectors.toList()));
 

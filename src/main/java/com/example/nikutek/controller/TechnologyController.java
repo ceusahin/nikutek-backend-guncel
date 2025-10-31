@@ -23,6 +23,14 @@ public class TechnologyController {
         return ResponseEntity.ok(technologyService.getAllTechnologies());
     }
 
+    // 🔸 Slug'a göre teknoloji çek (SEO-friendly URL)
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<TechnologyDTO> getTechnologyBySlug(
+            @PathVariable String slug,
+            @RequestParam(defaultValue = "tr") String lang) {
+        return ResponseEntity.ok(technologyService.getTechnologyBySlug(slug, lang));
+    }
+
     @PostMapping
     public ResponseEntity<Technology> addOrUpdateTechnology(@RequestBody TechnologyRequest req) {
         return ResponseEntity.ok(technologyService.addOrUpdateTechnology(req.getId(), req.isActive(), req.getImageUrl()));
@@ -36,7 +44,7 @@ public class TechnologyController {
 
     @PostMapping("/translation")
     public ResponseEntity<TechnologyTranslation> addOrUpdateTranslation(@RequestBody TranslationRequest req) {
-        return ResponseEntity.ok(technologyService.addOrUpdateTranslation(req.getTechnologyId(), req.getLangCode(), req.getTitle(), req.getDescription()));
+        return ResponseEntity.ok(technologyService.addOrUpdateTranslation(req.getTechnologyId(), req.getLangCode(), req.getTitle(), req.getDescription(), req.getSlug()));
     }
 
     @PostMapping("/catalog")
@@ -74,6 +82,7 @@ public class TechnologyController {
         private String langCode;
         private String title;
         private String description;
+        private String slug;
     }
 
     @Data

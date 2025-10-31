@@ -23,6 +23,7 @@ public class ProductDTO {
         private String langCode;
         private String title;
         private String description;
+        private String slug;
     }
 
     @Data

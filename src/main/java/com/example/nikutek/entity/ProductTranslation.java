@@ -25,4 +25,7 @@ public class ProductTranslation {
 
     @Column(length = 2000)
     private String description;
+
+    @Column(name = "slug", unique = true)
+    private String slug;
 }
