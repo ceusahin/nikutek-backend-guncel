@@ -24,6 +24,12 @@ public class ReferencesController {
         return ResponseEntity.ok(referencesService.getAllByLanguageCode(langCode));
     }
 
+    // 🎛️ Admin paneli için tüm endüstrileri getir (şirket filtresi olmadan)
+    @GetMapping("/admin/{langCode}")
+    public ResponseEntity<List<IndustryDTO>> getAllForAdmin(@PathVariable String langCode) {
+        return ResponseEntity.ok(referencesService.getAllByLanguageCodeForAdmin(langCode));
+    }
+
     @PostMapping("/industry")
     public ResponseEntity<ReferencesIndustry> addOrUpdateIndustry(@RequestParam(required = false) Long id) {
         return ResponseEntity.ok(referencesService.addOrUpdateIndustry(id));
