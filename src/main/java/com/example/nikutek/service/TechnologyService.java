@@ -154,9 +154,13 @@ public class TechnologyService {
             
             // PDF ise, backend proxy URL'ini döndür (doğru headers ile serve edilsin)
             if (isPdf) {
-                // Cloudinary URL'inden public_id'yi çıkar
-                String publicId = extractPublicIdFromUrl(cloudinaryUrl);
-                return "/api/nikutek/technologies/files/" + publicId;
+                // Cloudinary'den direkt public_id'yi al (daha güvenilir)
+                String publicId = uploadResult.get("public_id").toString();
+                // public_id'yi URL-safe hale getir (slash'ları underscore'a çevir)
+                String urlSafePublicId = publicId.replace("/", "_");
+                System.out.println("PDF Upload - public_id: " + publicId);
+                System.out.println("PDF Upload - urlSafePublicId: " + urlSafePublicId);
+                return "/api/nikutek/technologies/files/" + urlSafePublicId;
             }
             
             // Resimler için direkt Cloudinary URL'ini döndür
@@ -215,30 +219,59 @@ public class TechnologyService {
     }
     
     // PDF dosyasını Cloudinary'den oku ve serve et
-    public byte[] getPdfFile(String publicId) throws IOException {
+    public byte[] getPdfFile(String urlSafePublicId) throws IOException {
         try {
-            // public_id'yi geri çevir (folder/file formatına)
+            // URL-safe public_id'yi geri çevir (folder/file formatına)
             // Örnek: nikutek_technologies_ciyltgjke8yhpflxguay -> nikutek/technologies/ciyltgjke8yhpflxguay
-            String cloudinaryPublicId = publicId.replace("_", "/");
+            String cloudinaryPublicId = urlSafePublicId.replace("_", "/");
             
-            System.out.println("PDF Request - publicId: " + publicId);
+            System.out.println("PDF Request - urlSafePublicId: " + urlSafePublicId);
             System.out.println("PDF Request - cloudinaryPublicId: " + cloudinaryPublicId);
             
-            // Cloudinary'den PDF'i indir
+            // Cloudinary'den PDF'i indir - secure URL kullan, format belirtme (Cloudinary otomatik anlar)
             String url = cloudinary.url()
                     .resourceType("raw")
-                    .format("pdf")
+                    .secure(true)
                     .generate(cloudinaryPublicId);
             
             System.out.println("PDF Request - Cloudinary URL: " + url);
             
             // URL'den dosyayı indir
-            java.net.URL cloudinaryUrl = new java.net.URL(url);
-            try (java.io.InputStream in = cloudinaryUrl.openStream()) {
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(30000);
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+            
+            int responseCode = connection.getResponseCode();
+            System.out.println("PDF Request - Response Code: " + responseCode);
+            
+            if (responseCode != 200) {
+                String errorMessage = "Cloudinary'den PDF alınamadı. Response Code: " + responseCode;
+                try (java.io.InputStream errorStream = connection.getErrorStream()) {
+                    if (errorStream != null) {
+                        String errorBody = new String(errorStream.readAllBytes());
+                        errorMessage += " - Error: " + errorBody;
+                        System.err.println(errorMessage);
+                    }
+                }
+                throw new IOException(errorMessage);
+            }
+            
+            try (java.io.InputStream in = connection.getInputStream()) {
                 byte[] data = in.readAllBytes();
                 System.out.println("PDF Request - File size: " + data.length + " bytes");
+                if (data.length == 0) {
+                    throw new IOException("PDF dosyası boş");
+                }
                 return data;
             }
+        } catch (java.net.SocketTimeoutException e) {
+            System.err.println("PDF Timeout Error: " + e.getMessage());
+            throw new IOException("PDF Cloudinary'den alınırken zaman aşımı oluştu: " + e.getMessage(), e);
+        } catch (java.io.FileNotFoundException e) {
+            System.err.println("PDF File Not Found: " + e.getMessage());
+            throw new IOException("PDF Cloudinary'de bulunamadı. Public ID: " + urlSafePublicId, e);
         } catch (Exception e) {
             System.err.println("PDF Error: " + e.getMessage());
             e.printStackTrace();
