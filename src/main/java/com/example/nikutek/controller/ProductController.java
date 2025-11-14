@@ -74,7 +74,8 @@ public class ProductController {
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("inline", fileName);
+            // inline: tarayıcıda aç, attachment: indir
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"");
             headers.setContentLength(fileContent.length);
             headers.setCacheControl("no-cache, no-store, must-revalidate");
             headers.setPragma("no-cache");
