@@ -188,10 +188,21 @@ public class TechnologyService {
     
     // PDF dosyasını oku
     public byte[] getPdfFile(String fileName) throws IOException {
-        Path filePath = Paths.get(uploadDir).resolve(fileName);
-        if (!Files.exists(filePath)) {
-            throw new RuntimeException("Dosya bulunamadı: " + fileName);
+        // Güvenlik: dosya adında path traversal karakterlerini temizle
+        String safeFileName = fileName.replaceAll("[\\.\\./\\\\]", "");
+        
+        Path filePath = Paths.get(uploadDir).resolve(safeFileName).normalize();
+        
+        // Güvenlik: dosya yolu uploadDir dışına çıkmamalı
+        Path uploadPath = Paths.get(uploadDir).normalize();
+        if (!filePath.startsWith(uploadPath)) {
+            throw new RuntimeException("Geçersiz dosya yolu: " + fileName);
         }
+        
+        if (!Files.exists(filePath)) {
+            throw new RuntimeException("Dosya bulunamadı: " + fileName + " (Path: " + filePath.toString() + ")");
+        }
+        
         return Files.readAllBytes(filePath);
     }
 

@@ -67,7 +67,7 @@ public class ProductController {
     }
     
     // PDF dosyasını serve et
-    @GetMapping("/files/{fileName}")
+    @GetMapping("/files/{fileName:.+}")
     public ResponseEntity<byte[]> getPdfFile(@PathVariable String fileName) {
         try {
             byte[] fileContent = productService.getPdfFile(fileName);
@@ -76,11 +76,15 @@ public class ProductController {
             headers.setContentType(MediaType.APPLICATION_PDF);
             headers.setContentDispositionFormData("inline", fileName);
             headers.setContentLength(fileContent.length);
+            headers.setCacheControl("no-cache, no-store, must-revalidate");
+            headers.setPragma("no-cache");
+            headers.setExpires(0);
             
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(fileContent);
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
+            e.printStackTrace();
             return ResponseEntity.notFound().build();
         }
     }
