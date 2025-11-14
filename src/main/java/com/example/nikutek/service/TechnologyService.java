@@ -13,10 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,9 +28,6 @@ public class TechnologyService {
     private final TechnologyCatalogRepository catalogRepository;
     private final LanguageRepository languageRepository;
     private final Cloudinary cloudinary;
-    
-    @Value("${file.upload.technologies:uploads/technologies}")
-    private String uploadDir;
 
     public List<TechnologyDTO> getAllTechnologies() {
         return technologyRepository.findAllOrdered()
@@ -134,7 +127,7 @@ public class TechnologyService {
         return catalogRepository.save(catalog);
     }
 
-    // File upload - PDF'ler local'e, resimler Cloudinary'ye
+    // File upload - PDF'ler Cloudinary'ye yüklenir, backend proxy ile serve edilir
     public String uploadFile(MultipartFile file) {
         try {
             String fileName = file.getOriginalFilename();
@@ -142,68 +135,86 @@ public class TechnologyService {
                 throw new RuntimeException("Dosya adı bulunamadı");
             }
             
-            // PDF dosyaları için local storage kullan
-            if (fileName.toLowerCase().endsWith(".pdf") || 
-                (file.getContentType() != null && file.getContentType().equals("application/pdf"))) {
-                return uploadPdfToLocal(file);
-            }
+            boolean isPdf = fileName.toLowerCase().endsWith(".pdf") || 
+                           (file.getContentType() != null && file.getContentType().equals("application/pdf"));
             
-            // Resimler için Cloudinary kullan
+            // PDF dosyaları için raw resource type kullan
+            String resourceType = isPdf ? "raw" : "auto";
+            
+            // Cloudinary'ye yükle
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
                             "folder", "nikutek/technologies",
                             "overwrite", true,
-                            "resource_type", "auto",
+                            "resource_type", resourceType,
                             "access_mode", "public"
                     ));
-            return uploadResult.get("secure_url").toString();
+            
+            String cloudinaryUrl = uploadResult.get("secure_url").toString();
+            
+            // PDF ise, backend proxy URL'ini döndür (doğru headers ile serve edilsin)
+            if (isPdf) {
+                // Cloudinary URL'inden public_id'yi çıkar
+                String publicId = extractPublicIdFromUrl(cloudinaryUrl);
+                return "/api/nikutek/technologies/files/" + publicId;
+            }
+            
+            // Resimler için direkt Cloudinary URL'ini döndür
+            return cloudinaryUrl;
         } catch (IOException e) {
             throw new RuntimeException("Dosya yüklenemedi: " + e.getMessage());
         }
     }
     
-    // PDF'leri local'e kaydet
-    private String uploadPdfToLocal(MultipartFile file) throws IOException {
-        // Upload dizinini oluştur
-        Path uploadPath = Paths.get(uploadDir);
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
+    // Cloudinary URL'inden public_id'yi çıkar
+    private String extractPublicIdFromUrl(String url) {
+        try {
+            // URL formatı: https://res.cloudinary.com/account/raw/upload/v123/folder/file.pdf
+            int uploadIndex = url.indexOf("/upload/");
+            if (uploadIndex == -1) {
+                return UUID.randomUUID().toString();
+            }
+            
+            String afterUpload = url.substring(uploadIndex + "/upload/".length());
+            // v123 kısmını atla
+            int slashIndex = afterUpload.indexOf("/");
+            if (slashIndex != -1) {
+                afterUpload = afterUpload.substring(slashIndex + 1);
+            }
+            
+            // Uzantıyı kaldır
+            int dotIndex = afterUpload.lastIndexOf(".");
+            if (dotIndex != -1) {
+                afterUpload = afterUpload.substring(0, dotIndex);
+            }
+            
+            // / karakterlerini _ ile değiştir (URL-safe)
+            return afterUpload.replace("/", "_");
+        } catch (Exception e) {
+            return UUID.randomUUID().toString();
         }
-        
-        // Benzersiz dosya adı oluştur
-        String originalFileName = file.getOriginalFilename();
-        String fileExtension = "";
-        if (originalFileName != null && originalFileName.contains(".")) {
-            fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
-        }
-        String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
-        
-        // Dosyayı kaydet
-        Path filePath = uploadPath.resolve(uniqueFileName);
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-        
-        // Backend URL'ini döndür (frontend'de tam URL'e çevrilecek)
-        return "/api/nikutek/technologies/files/" + uniqueFileName;
     }
     
-    // PDF dosyasını oku
-    public byte[] getPdfFile(String fileName) throws IOException {
-        // Güvenlik: dosya adında path traversal karakterlerini temizle
-        String safeFileName = fileName.replaceAll("[\\.\\./\\\\]", "");
-        
-        Path filePath = Paths.get(uploadDir).resolve(safeFileName).normalize();
-        
-        // Güvenlik: dosya yolu uploadDir dışına çıkmamalı
-        Path uploadPath = Paths.get(uploadDir).normalize();
-        if (!filePath.startsWith(uploadPath)) {
-            throw new RuntimeException("Geçersiz dosya yolu: " + fileName);
+    // PDF dosyasını Cloudinary'den oku ve serve et
+    public byte[] getPdfFile(String publicId) throws IOException {
+        try {
+            // public_id'yi geri çevir (folder/file formatına)
+            String cloudinaryPublicId = publicId.replace("_", "/");
+            
+            // Cloudinary'den PDF'i indir
+            String url = cloudinary.url()
+                    .resourceType("raw")
+                    .format("pdf")
+                    .generate(cloudinaryPublicId);
+            
+            // URL'den dosyayı indir
+            java.net.URL cloudinaryUrl = new java.net.URL(url);
+            try (java.io.InputStream in = cloudinaryUrl.openStream()) {
+                return in.readAllBytes();
+            }
+        } catch (Exception e) {
+            throw new IOException("PDF Cloudinary'den alınamadı: " + e.getMessage(), e);
         }
-        
-        if (!Files.exists(filePath)) {
-            throw new RuntimeException("Dosya bulunamadı: " + fileName + " (Path: " + filePath.toString() + ")");
-        }
-        
-        return Files.readAllBytes(filePath);
     }
 
     // Sıralama Güncelle
