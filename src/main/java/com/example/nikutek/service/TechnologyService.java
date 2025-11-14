@@ -326,6 +326,7 @@ public class TechnologyService {
                 .stream()
                 .map(c -> {
                     TechnologyDTO.TechnologyCatalogDTO cdto = new TechnologyDTO.TechnologyCatalogDTO();
+                    cdto.setId(c.getId());
                     cdto.setName(c.getName());
                     cdto.setFileUrl(c.getFileUrl());
                     return cdto;

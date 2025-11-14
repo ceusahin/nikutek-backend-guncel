@@ -24,6 +24,7 @@ public class TechnologyDTO {
 
     @Data
     public static class TechnologyCatalogDTO {
+        private Long id;
         private String name;
         private String fileUrl;
     }
