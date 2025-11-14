@@ -64,7 +64,7 @@ public class TechnologyService {
         technologyRepository.delete(tech);
     }
 
-    public TechnologyTranslation addOrUpdateTranslation(Long technologyId, String langCode, String title, String description, String slug) {
+    public TechnologyTranslation addOrUpdateTranslation(Long technologyId, String langCode, String title, String description, String featuresDescription, String slug) {
         Technology tech = technologyRepository.findById(technologyId)
                 .orElseThrow(() -> new RuntimeException("Technology bulunamadı: " + technologyId));
 
@@ -81,6 +81,7 @@ public class TechnologyService {
         translation.setLanguage(language);
         translation.setTitle(title);
         translation.setDescription(description);
+        translation.setFeaturesDescription(featuresDescription);
 
         // Slug oluştur veya kullan
         if (slug == null || slug.trim().isEmpty()) {
@@ -171,6 +172,7 @@ public class TechnologyService {
                     tdto.setLangCode(t.getLanguage().getCode());
                     tdto.setTitle(t.getTitle());
                     tdto.setDescription(t.getDescription());
+                    tdto.setFeaturesDescription(t.getFeaturesDescription());
                     tdto.setSlug(t.getSlug());
                     return tdto;
                 }).collect(Collectors.toList()));
