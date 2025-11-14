@@ -132,7 +132,9 @@ public class TechnologyService {
                     ObjectUtils.asMap(
                             "folder", "nikutek/technologies",
                             "overwrite", true,
-                            "resource_type", "auto"
+                            "resource_type", "auto",
+                            "access_mode", "public",
+                            "flags", "attachment:false" // PDF'yi açılabilir hale getirir
                     ));
             return uploadResult.get("secure_url").toString();
         } catch (IOException e) {
