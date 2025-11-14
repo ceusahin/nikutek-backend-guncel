@@ -128,13 +128,22 @@ public class TechnologyService {
     // Cloudinary upload
     public String uploadFile(MultipartFile file) {
         try {
+            // Dosya tipini kontrol et
+            String fileName = file.getOriginalFilename();
+            String resourceType = "auto";
+            
+            // PDF dosyaları için raw resource type kullan
+            if (fileName != null && (fileName.toLowerCase().endsWith(".pdf") || 
+                file.getContentType() != null && file.getContentType().equals("application/pdf"))) {
+                resourceType = "raw";
+            }
+            
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
                             "folder", "nikutek/technologies",
                             "overwrite", true,
-                            "resource_type", "auto",
-                            "access_mode", "public",
-                            "flags", "attachment:false" // PDF'yi açılabilir hale getirir
+                            "resource_type", resourceType,
+                            "access_mode", "public"
                     ));
             return uploadResult.get("secure_url").toString();
         } catch (IOException e) {
