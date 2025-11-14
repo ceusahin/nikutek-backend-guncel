@@ -5,10 +5,13 @@ import com.example.nikutek.entity.*;
 import com.example.nikutek.service.ProductService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -57,10 +60,29 @@ public class ProductController {
         return ResponseEntity.ok(productService.toggleActiveDTO(id));
     }
 
-    // 🔸 Cloudinary dosya yükleme
+    // 🔸 File upload - PDF'ler local'e, resimler Cloudinary'ye
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(productService.uploadFile(file));
+    }
+    
+    // PDF dosyasını serve et
+    @GetMapping("/files/{fileName}")
+    public ResponseEntity<byte[]> getPdfFile(@PathVariable String fileName) {
+        try {
+            byte[] fileContent = productService.getPdfFile(fileName);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("inline", fileName);
+            headers.setContentLength(fileContent.length);
+            
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(fileContent);
+        } catch (IOException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // 🔸 Sıralama güncelle (sadece parent ürünler için)

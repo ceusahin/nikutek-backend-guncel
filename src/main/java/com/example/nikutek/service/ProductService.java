@@ -8,13 +8,19 @@ import com.example.nikutek.repository.*;
 import com.example.nikutek.utils.SlugGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.Data;
 
@@ -28,6 +34,9 @@ public class ProductService {
     private final ProductCatalogRepository catalogRepository;
     private final LanguageRepository languageRepository;
     private final Cloudinary cloudinary;
+    
+    @Value("${file.upload.products:uploads/products}")
+    private String uploadDir;
 
     // 🔸 Tüm ürünleri çek (ana + alt) - displayOrder'e göre sıralı
     public List<ProductDTO> getAllProducts() {
@@ -200,30 +209,65 @@ public class ProductService {
         return toDTO(product, 0);
     }
 
-    // 🔸 Cloudinary upload
+    // 🔸 File upload - PDF'ler local'e, resimler Cloudinary'ye
     public String uploadFile(MultipartFile file) {
         try {
-            // Dosya tipini kontrol et
             String fileName = file.getOriginalFilename();
-            String resourceType = "auto";
-            
-            // PDF dosyaları için raw resource type kullan
-            if (fileName != null && (fileName.toLowerCase().endsWith(".pdf") || 
-                file.getContentType() != null && file.getContentType().equals("application/pdf"))) {
-                resourceType = "raw";
+            if (fileName == null) {
+                throw new RuntimeException("Dosya adı bulunamadı");
             }
             
+            // PDF dosyaları için local storage kullan
+            if (fileName.toLowerCase().endsWith(".pdf") || 
+                (file.getContentType() != null && file.getContentType().equals("application/pdf"))) {
+                return uploadPdfToLocal(file);
+            }
+            
+            // Resimler için Cloudinary kullan
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
                             "folder", "nikutek/products",
                             "overwrite", true,
-                            "resource_type", resourceType,
+                            "resource_type", "auto",
                             "access_mode", "public"
                     ));
             return uploadResult.get("secure_url").toString();
         } catch (IOException e) {
             throw new RuntimeException("Dosya yüklenemedi: " + e.getMessage());
         }
+    }
+    
+    // PDF'leri local'e kaydet
+    private String uploadPdfToLocal(MultipartFile file) throws IOException {
+        // Upload dizinini oluştur
+        Path uploadPath = Paths.get(uploadDir);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+        
+        // Benzersiz dosya adı oluştur
+        String originalFileName = file.getOriginalFilename();
+        String fileExtension = "";
+        if (originalFileName != null && originalFileName.contains(".")) {
+            fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        }
+        String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+        
+        // Dosyayı kaydet
+        Path filePath = uploadPath.resolve(uniqueFileName);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        
+        // Backend URL'ini döndür (frontend'de tam URL'e çevrilecek)
+        return "/api/nikutek/products/files/" + uniqueFileName;
+    }
+    
+    // PDF dosyasını oku
+    public byte[] getPdfFile(String fileName) throws IOException {
+        Path filePath = Paths.get(uploadDir).resolve(fileName);
+        if (!Files.exists(filePath)) {
+            throw new RuntimeException("Dosya bulunamadı: " + fileName);
+        }
+        return Files.readAllBytes(filePath);
     }
 
     // 🔸 Sıralama güncelle (sadece parent ürünler için)
