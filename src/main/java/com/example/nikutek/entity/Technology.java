@@ -24,6 +24,9 @@ public class Technology {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "text_content", columnDefinition = "TEXT")
+    private String textContent;
+
     @Column(name = "display_order")
     private Integer displayOrder;
 

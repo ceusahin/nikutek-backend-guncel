@@ -8,6 +8,7 @@ public class TechnologyDTO {
     private Long id;
     private boolean active;
     private String imageUrl;
+    private String textContent;
     private Integer displayOrder;
     private List<TechnologyTranslationDTO> translations;
     private List<TechnologyCatalogDTO> catalogs;

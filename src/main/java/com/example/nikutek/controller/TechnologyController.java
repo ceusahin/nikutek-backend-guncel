@@ -33,7 +33,7 @@ public class TechnologyController {
 
     @PostMapping
     public ResponseEntity<Technology> addOrUpdateTechnology(@RequestBody TechnologyRequest req) {
-        return ResponseEntity.ok(technologyService.addOrUpdateTechnology(req.getId(), req.isActive(), req.getImageUrl()));
+        return ResponseEntity.ok(technologyService.addOrUpdateTechnology(req.getId(), req.isActive(), req.getImageUrl(), req.getTextContent()));
     }
 
     @DeleteMapping("/{id}")
@@ -74,6 +74,7 @@ public class TechnologyController {
         private Long id;
         private boolean active;
         private String imageUrl;
+        private String textContent;
     }
 
     @Data

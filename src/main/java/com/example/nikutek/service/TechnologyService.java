@@ -42,13 +42,14 @@ public class TechnologyService {
         return toDTO(translation.getTechnology());
     }
 
-    public Technology addOrUpdateTechnology(Long id, boolean isActive, String imageUrl) {
+    public Technology addOrUpdateTechnology(Long id, boolean isActive, String imageUrl, String textContent) {
         Technology tech = id != null
                 ? technologyRepository.findById(id).orElse(new Technology())
                 : new Technology();
 
         tech.setActive(isActive);
         tech.setImageUrl(imageUrl);
+        tech.setTextContent(textContent);
 
         return technologyRepository.save(tech);
     }
@@ -160,6 +161,7 @@ public class TechnologyService {
         dto.setId(entity.getId());
         dto.setActive(entity.isActive());
         dto.setImageUrl(entity.getImageUrl());
+        dto.setTextContent(entity.getTextContent());
         dto.setDisplayOrder(entity.getDisplayOrder());
 
         dto.setTranslations(translationRepository.findByTechnology(entity)
