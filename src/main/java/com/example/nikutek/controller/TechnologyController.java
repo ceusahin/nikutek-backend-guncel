@@ -63,24 +63,28 @@ public class TechnologyController {
     // PDF dosyasını serve et
     @GetMapping("/files/{fileName:.+}")
     public ResponseEntity<byte[]> getPdfFile(@PathVariable String fileName) {
+        System.out.println("PDF Endpoint called - fileName: " + fileName);
         try {
             byte[] fileContent = technologyService.getPdfFile(fileName);
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
             // inline: tarayıcıda aç, attachment: indir
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"");
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + ".pdf\"");
             headers.setContentLength(fileContent.length);
             headers.setCacheControl("no-cache, no-store, must-revalidate");
             headers.setPragma("no-cache");
             headers.setExpires(0);
             
+            System.out.println("PDF served successfully - size: " + fileContent.length);
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(fileContent);
         } catch (IOException | RuntimeException e) {
+            System.err.println("PDF serve error: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(500)
+                    .body(("Error: " + e.getMessage()).getBytes());
         }
     }
 

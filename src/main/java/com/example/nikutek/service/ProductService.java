@@ -245,17 +245,30 @@ public class ProductService {
     private String extractPublicIdFromUrl(String url) {
         try {
             // URL formatı: https://res.cloudinary.com/account/raw/upload/v123/folder/file.pdf
+            // veya: https://res.cloudinary.com/account/raw/upload/folder/file.pdf
+            System.out.println("Extracting public_id from URL: " + url);
+            
             int uploadIndex = url.indexOf("/upload/");
             if (uploadIndex == -1) {
+                System.err.println("Could not find /upload/ in URL");
                 return UUID.randomUUID().toString();
             }
             
             String afterUpload = url.substring(uploadIndex + "/upload/".length());
-            // v123 kısmını atla
-            int slashIndex = afterUpload.indexOf("/");
-            if (slashIndex != -1) {
-                afterUpload = afterUpload.substring(slashIndex + 1);
+            System.out.println("After /upload/: " + afterUpload);
+            
+            // v123 kısmını atla (version varsa)
+            if (afterUpload.startsWith("v")) {
+                int slashIndex = afterUpload.indexOf("/");
+                if (slashIndex != -1) {
+                    afterUpload = afterUpload.substring(slashIndex + 1);
+                } else {
+                    // Version var ama slash yok, sadece version varsa
+                    return UUID.randomUUID().toString();
+                }
             }
+            
+            System.out.println("After version: " + afterUpload);
             
             // Uzantıyı kaldır
             int dotIndex = afterUpload.lastIndexOf(".");
@@ -263,9 +276,15 @@ public class ProductService {
                 afterUpload = afterUpload.substring(0, dotIndex);
             }
             
+            System.out.println("After removing extension: " + afterUpload);
+            
             // / karakterlerini _ ile değiştir (URL-safe)
-            return afterUpload.replace("/", "_");
+            String publicId = afterUpload.replace("/", "_");
+            System.out.println("Final public_id: " + publicId);
+            return publicId;
         } catch (Exception e) {
+            System.err.println("Error extracting public_id: " + e.getMessage());
+            e.printStackTrace();
             return UUID.randomUUID().toString();
         }
     }
@@ -274,7 +293,11 @@ public class ProductService {
     public byte[] getPdfFile(String publicId) throws IOException {
         try {
             // public_id'yi geri çevir (folder/file formatına)
+            // Örnek: nikutek_products_ciyltgjke8yhpflxguay -> nikutek/products/ciyltgjke8yhpflxguay
             String cloudinaryPublicId = publicId.replace("_", "/");
+            
+            System.out.println("PDF Request - publicId: " + publicId);
+            System.out.println("PDF Request - cloudinaryPublicId: " + cloudinaryPublicId);
             
             // Cloudinary'den PDF'i indir
             String url = cloudinary.url()
@@ -282,12 +305,18 @@ public class ProductService {
                     .format("pdf")
                     .generate(cloudinaryPublicId);
             
+            System.out.println("PDF Request - Cloudinary URL: " + url);
+            
             // URL'den dosyayı indir
             java.net.URL cloudinaryUrl = new java.net.URL(url);
             try (java.io.InputStream in = cloudinaryUrl.openStream()) {
-                return in.readAllBytes();
+                byte[] data = in.readAllBytes();
+                System.out.println("PDF Request - File size: " + data.length + " bytes");
+                return data;
             }
         } catch (Exception e) {
+            System.err.println("PDF Error: " + e.getMessage());
+            e.printStackTrace();
             throw new IOException("PDF Cloudinary'den alınamadı: " + e.getMessage(), e);
         }
     }
