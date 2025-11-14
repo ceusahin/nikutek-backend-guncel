@@ -24,6 +24,12 @@ public class ProductDTO {
         private String title;
         private String description;
         private String slug;
+        private String seoTitle;
+        private String seoDescription;
+        private String seoKeywords;
+        private String seoOgTitle;
+        private String seoOgDescription;
+        private String seoOgImage;
     }
 
     @Data

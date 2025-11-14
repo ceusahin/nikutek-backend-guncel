@@ -106,6 +106,14 @@ public class ProductService {
                 trans.setTitle(t.getTitle());
                 trans.setDescription(t.getDescription());
                 
+                // SEO alanları
+                trans.setSeoTitle(t.getSeoTitle());
+                trans.setSeoDescription(t.getSeoDescription());
+                trans.setSeoKeywords(t.getSeoKeywords());
+                trans.setSeoOgTitle(t.getSeoOgTitle());
+                trans.setSeoOgDescription(t.getSeoOgDescription());
+                trans.setSeoOgImage(t.getSeoOgImage());
+                
                 // Slug oluştur veya kullan (eğer DTO'da varsa)
                 String slug = t.getSlug();
                 if (slug == null || slug.trim().isEmpty()) {
@@ -397,6 +405,12 @@ public class ProductService {
                             tDto.setTitle(t.getTitle());
                             tDto.setDescription(t.getDescription());
                             tDto.setSlug(t.getSlug());
+                            tDto.setSeoTitle(t.getSeoTitle());
+                            tDto.setSeoDescription(t.getSeoDescription());
+                            tDto.setSeoKeywords(t.getSeoKeywords());
+                            tDto.setSeoOgTitle(t.getSeoOgTitle());
+                            tDto.setSeoOgDescription(t.getSeoOgDescription());
+                            tDto.setSeoOgImage(t.getSeoOgImage());
                             return tDto;
                         }).toList()
         );

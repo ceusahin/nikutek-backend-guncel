@@ -20,6 +20,12 @@ public class TechnologyDTO {
         private String description;
         private String featuresDescription;
         private String slug;
+        private String seoTitle;
+        private String seoDescription;
+        private String seoKeywords;
+        private String seoOgTitle;
+        private String seoOgDescription;
+        private String seoOgImage;
     }
 
     @Data

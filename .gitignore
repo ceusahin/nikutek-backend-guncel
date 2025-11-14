@@ -40,3 +40,4 @@ database_migration_slug.sql
 database_migration_text_content.sql
 database_migration_features_description.sql
 database_migration_page_seo_settings.sql
+database_migration_product_technology_seo.sql

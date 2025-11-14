@@ -47,7 +47,20 @@ public class TechnologyController {
 
     @PostMapping("/translation")
     public ResponseEntity<TechnologyTranslation> addOrUpdateTranslation(@RequestBody TranslationRequest req) {
-        return ResponseEntity.ok(technologyService.addOrUpdateTranslation(req.getTechnologyId(), req.getLangCode(), req.getTitle(), req.getDescription(), req.getFeaturesDescription(), req.getSlug()));
+        return ResponseEntity.ok(technologyService.addOrUpdateTranslation(
+                req.getTechnologyId(), 
+                req.getLangCode(), 
+                req.getTitle(), 
+                req.getDescription(), 
+                req.getFeaturesDescription(), 
+                req.getSlug(),
+                req.getSeoTitle(),
+                req.getSeoDescription(),
+                req.getSeoKeywords(),
+                req.getSeoOgTitle(),
+                req.getSeoOgDescription(),
+                req.getSeoOgImage()
+        ));
     }
 
     @PostMapping("/catalog")
@@ -122,6 +135,12 @@ public class TechnologyController {
         private String description;
         private String featuresDescription;
         private String slug;
+        private String seoTitle;
+        private String seoDescription;
+        private String seoKeywords;
+        private String seoOgTitle;
+        private String seoOgDescription;
+        private String seoOgImage;
     }
 
     @Data

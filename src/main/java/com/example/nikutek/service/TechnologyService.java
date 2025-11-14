@@ -66,7 +66,7 @@ public class TechnologyService {
         technologyRepository.delete(tech);
     }
 
-    public TechnologyTranslation addOrUpdateTranslation(Long technologyId, String langCode, String title, String description, String featuresDescription, String slug) {
+    public TechnologyTranslation addOrUpdateTranslation(Long technologyId, String langCode, String title, String description, String featuresDescription, String slug, String seoTitle, String seoDescription, String seoKeywords, String seoOgTitle, String seoOgDescription, String seoOgImage) {
         Technology tech = technologyRepository.findById(technologyId)
                 .orElseThrow(() -> new RuntimeException("Technology bulunamadı: " + technologyId));
 
@@ -106,6 +106,14 @@ public class TechnologyService {
         );
 
         translation.setSlug(slug);
+        
+        // SEO alanları
+        translation.setSeoTitle(seoTitle);
+        translation.setSeoDescription(seoDescription);
+        translation.setSeoKeywords(seoKeywords);
+        translation.setSeoOgTitle(seoOgTitle);
+        translation.setSeoOgDescription(seoOgDescription);
+        translation.setSeoOgImage(seoOgImage);
 
         return translationRepository.save(translation);
     }
@@ -319,6 +327,12 @@ public class TechnologyService {
                     tdto.setDescription(t.getDescription());
                     tdto.setFeaturesDescription(t.getFeaturesDescription());
                     tdto.setSlug(t.getSlug());
+                    tdto.setSeoTitle(t.getSeoTitle());
+                    tdto.setSeoDescription(t.getSeoDescription());
+                    tdto.setSeoKeywords(t.getSeoKeywords());
+                    tdto.setSeoOgTitle(t.getSeoOgTitle());
+                    tdto.setSeoOgDescription(t.getSeoOgDescription());
+                    tdto.setSeoOgImage(t.getSeoOgImage());
                     return tdto;
                 }).collect(Collectors.toList()));
 
