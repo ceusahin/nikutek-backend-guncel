@@ -55,6 +55,12 @@ public class TechnologyController {
         return ResponseEntity.ok(technologyService.addOrUpdateCatalog(req.getTechnologyId(), req.getName(), req.getFileUrl()));
     }
 
+    @DeleteMapping("/catalog/{id}")
+    public ResponseEntity<Void> deleteCatalog(@PathVariable Long id) {
+        technologyService.deleteCatalog(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(technologyService.uploadFile(file));

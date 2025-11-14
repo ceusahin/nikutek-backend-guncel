@@ -127,6 +127,12 @@ public class TechnologyService {
         return catalogRepository.save(catalog);
     }
 
+    public void deleteCatalog(Long catalogId) {
+        TechnologyCatalog catalog = catalogRepository.findById(catalogId)
+                .orElseThrow(() -> new RuntimeException("Katalog bulunamadı: " + catalogId));
+        catalogRepository.delete(catalog);
+    }
+
     // File upload - PDF'ler Cloudinary'ye yüklenir, backend proxy ile serve edilir
     public String uploadFile(MultipartFile file) {
         try {
