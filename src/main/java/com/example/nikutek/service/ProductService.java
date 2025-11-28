@@ -71,6 +71,14 @@ public class ProductService {
                 : new Product();
 
         // Parent ilişkisi - DTO'dan parentId'yi al ve parent'ı bul
+        Long newParentId = (dto.getParentId() != null) ? dto.getParentId() : 
+                           (parent != null) ? parent.getId() : null;
+        
+        // Circular reference kontrolü
+        if (product.getId() != null && newParentId != null) {
+            validateParentId(product.getId(), newParentId);
+        }
+        
         if (dto.getParentId() != null) {
             Product parentProduct = productRepository.findById(dto.getParentId())
                     .orElseThrow(() -> new RuntimeException("Parent ürün bulunamadı: " + dto.getParentId()));
@@ -79,7 +87,7 @@ public class ProductService {
             // Eğer parent parametresi varsa (children için) onu kullan
             product.setParent(parent);
         } else {
-            // Hiçbiri yoksa null set et
+            // Hiçbiri yoksa null set et (ana ürün yap)
             product.setParent(null);
         }
 
@@ -383,6 +391,38 @@ public class ProductService {
         private Integer displayOrder;
     }
 
+    // 🔸 Circular reference kontrolü
+    private void validateParentId(Long productId, Long newParentId) {
+        // Bir ürün kendi parent'ı olamaz
+        if (productId.equals(newParentId)) {
+            throw new RuntimeException("Bir ürün kendi parent'ı olamaz");
+        }
+        
+        // Yeni parent'ın, mevcut ürünün alt ürünü olup olmadığını kontrol et (circular reference)
+        if (isDescendantOf(productId, newParentId)) {
+            throw new RuntimeException("Circular reference: Bu ürün seçilen parent'ın alt ürünü. Bir ürün kendi alt ürününün alt ürünü olamaz.");
+        }
+    }
+    
+    // Bir ürünün, başka bir ürünün alt ürünü (descendant) olup olmadığını kontrol et
+    private boolean isDescendantOf(Long ancestorId, Long descendantId) {
+        if (ancestorId == null || descendantId == null) {
+            return false;
+        }
+        
+        Product current = productRepository.findById(descendantId).orElse(null);
+        int depth = 0;
+        final int MAX_DEPTH = 100; // Sonsuz döngü önleme
+        
+        while (current != null && current.getParent() != null && depth < MAX_DEPTH) {
+            if (current.getParent().getId().equals(ancestorId)) {
+                return true;
+            }
+            current = current.getParent();
+            depth++;
+        }
+        return false;
+    }
 
     // 🔸 DTO dönüşümü
     private ProductDTO toDTO(Product product, int level) {
