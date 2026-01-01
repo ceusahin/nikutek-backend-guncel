@@ -37,6 +37,7 @@ public class ProductDTO {
         private String langCode;
         private String name;
         private String value;
+        private Integer frequency; // 50 veya 60 Hz
     }
 
     @Data

@@ -25,4 +25,7 @@ public class ProductFeature {
 
     @Column(name = "feature_value", nullable = false)
     private String featureValue;
+
+    @Column(name = "frequency")
+    private Integer frequency;
 }

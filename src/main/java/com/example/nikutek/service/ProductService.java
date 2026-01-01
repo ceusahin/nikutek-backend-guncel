@@ -164,6 +164,7 @@ public class ProductService {
                 feature.setLanguage(lang);
                 feature.setFeatureName(f.getName());
                 feature.setFeatureValue(f.getValue());
+                feature.setFrequency(f.getFrequency());
                 featureRepository.save(feature);
             }
         }
@@ -464,6 +465,7 @@ public class ProductService {
                             fDto.setLangCode(f.getLanguage().getCode());
                             fDto.setName(f.getFeatureName());
                             fDto.setValue(f.getFeatureValue());
+                            fDto.setFrequency(f.getFrequency());
                             return fDto;
                         }).toList()
         );
