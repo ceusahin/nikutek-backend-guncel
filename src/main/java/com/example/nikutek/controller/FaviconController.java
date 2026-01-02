@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/favicon")
+@RequestMapping("/api/nikutek/favicon")
 public class FaviconController {
 
     private final FaviconService faviconService;

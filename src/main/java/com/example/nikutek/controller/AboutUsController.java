@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/about-us")
+@RequestMapping("/api/nikutek/about-us")
 @RequiredArgsConstructor
 public class AboutUsController {
 

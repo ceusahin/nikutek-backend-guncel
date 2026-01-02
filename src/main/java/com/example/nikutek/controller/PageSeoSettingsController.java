@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/page-seo")
+@RequestMapping("/api/nikutek/page-seo")
 public class PageSeoSettingsController {
 
     @Autowired

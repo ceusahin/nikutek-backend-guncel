@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/stocks")
+@RequestMapping("/api/nikutek/stocks")
 @RequiredArgsConstructor
 public class StockController {
 

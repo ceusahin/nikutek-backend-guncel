@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/social-media")
+@RequestMapping("/api/nikutek/social-media")
 public class SocialMediaSettingsController {
 
     @Autowired

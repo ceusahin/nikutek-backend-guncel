@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/technologies")
+@RequestMapping("/api/nikutek/technologies")
 @RequiredArgsConstructor
 public class TechnologyController {
 

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/contact")
+@RequestMapping("/api/nikutek/contact")
 @RequiredArgsConstructor
 public class ContactMessageController {
 

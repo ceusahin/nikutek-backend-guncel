@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/references")
+@RequestMapping("/api/nikutek/references")
 @RequiredArgsConstructor
 public class ReferencesController {
 

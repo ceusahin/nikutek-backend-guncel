@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/map-settings")
+@RequestMapping("/api/nikutek/map-settings")
 public class MapSettingsController {
 
     private final MapSettingsService service;

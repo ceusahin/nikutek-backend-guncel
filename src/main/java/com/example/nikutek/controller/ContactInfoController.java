@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/contact-info")
+@RequestMapping("/api/nikutek/contact-info")
 public class ContactInfoController {
 
     private final ContactInfoService contactInfoService;

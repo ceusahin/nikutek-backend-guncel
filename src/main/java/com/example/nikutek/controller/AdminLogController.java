@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/api/nikutek/admin")
 public class AdminLogController {
 
     private final AdminLogRepository logRepo;

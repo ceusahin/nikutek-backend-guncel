@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/footer-menu-item")
+@RequestMapping("/api/nikutek/footer-menu-item")
 @RequiredArgsConstructor
 public class FooterMenuItemController {
 

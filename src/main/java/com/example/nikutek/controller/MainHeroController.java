@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/main-hero")
+@RequestMapping("/api/nikutek/main-hero")
 @RequiredArgsConstructor
 public class MainHeroController {
 

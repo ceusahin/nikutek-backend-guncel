@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/seo")
+@RequestMapping("/api/nikutek/seo")
 public class SeoSettingsController {
 
     @Autowired

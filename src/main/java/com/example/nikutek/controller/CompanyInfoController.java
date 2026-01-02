@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/company-info")
+@RequestMapping("/api/nikutek/company-info")
 @RequiredArgsConstructor
 public class CompanyInfoController {
 

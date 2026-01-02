@@ -1,0 +1,304 @@
+package com.example.nikutek.service;
+
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+import com.example.nikutek.dto.TechnologyDTO;
+import com.example.nikutek.entity.*;
+import com.example.nikutek.repository.*;
+import com.example.nikutek.utils.SlugGenerator;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class NikuniPompaTechnologyService {
+
+    private final NikuniPompaTechnologyRepository technologyRepository;
+    private final NikuniPompaTechnologyTranslationRepository translationRepository;
+    private final NikuniPompaTechnologyCatalogRepository catalogRepository;
+    private final LanguageRepository languageRepository;
+    private final Cloudinary cloudinary;
+
+    public List<TechnologyDTO> getAllTechnologies() {
+        return technologyRepository.findAllOrdered()
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    // 🔸 Slug'a göre teknoloji çek (dil kodu ile)
+    public TechnologyDTO getTechnologyBySlug(String slug, String langCode) {
+        NikuniPompaTechnologyTranslation translation = translationRepository.findBySlugAndLanguageCode(slug, langCode)
+                .orElseThrow(() -> new RuntimeException("Teknoloji bulunamadı: " + slug + " (dil: " + langCode + ")"));
+        
+        return toDTO(translation.getTechnology());
+    }
+
+    public NikuniPompaTechnology addOrUpdateTechnology(Long id, boolean isActive, String imageUrl, String textContent) {
+        NikuniPompaTechnology tech = id != null
+                ? technologyRepository.findById(id).orElse(new NikuniPompaTechnology())
+                : new NikuniPompaTechnology();
+
+        tech.setActive(isActive);
+        tech.setImageUrl(imageUrl);
+        tech.setTextContent(textContent);
+
+        return technologyRepository.save(tech);
+    }
+
+    @Transactional
+    public void deleteTechnology(Long id) {
+        NikuniPompaTechnology tech = technologyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Technology bulunamadı: " + id));
+
+        translationRepository.deleteAll(translationRepository.findByTechnology(tech));
+        catalogRepository.deleteAll(catalogRepository.findByTechnology(tech));
+        technologyRepository.delete(tech);
+    }
+
+    public NikuniPompaTechnologyTranslation addOrUpdateTranslation(Long technologyId, String langCode, String title, String description, String featuresDescription, String slug, String seoTitle, String seoDescription, String seoKeywords, String seoOgTitle, String seoOgDescription, String seoOgImage) {
+        NikuniPompaTechnology tech = technologyRepository.findById(technologyId)
+                .orElseThrow(() -> new RuntimeException("Technology bulunamadı: " + technologyId));
+
+        Language language = languageRepository.findByCode(langCode)
+                .orElseThrow(() -> new RuntimeException("Dil bulunamadı: " + langCode));
+
+        NikuniPompaTechnologyTranslation translation = translationRepository.findByTechnology(tech)
+                .stream()
+                .filter(t -> t.getLanguage().equals(language))
+                .findFirst()
+                .orElse(new NikuniPompaTechnologyTranslation());
+
+        translation.setTechnology(tech);
+        translation.setLanguage(language);
+        translation.setTitle(title);
+        translation.setDescription(description);
+        translation.setFeaturesDescription(featuresDescription);
+
+        // Slug oluştur veya kullan
+        if (slug == null || slug.trim().isEmpty()) {
+            slug = SlugGenerator.generateSlug(title);
+        }
+
+        // Unique slug kontrolü
+        Long excludeTranslationId = translation.getId();
+        slug = SlugGenerator.ensureUniqueSlug(
+            slug,
+            s -> {
+                Optional<NikuniPompaTechnologyTranslation> existingOpt = translationRepository.findBySlug(s);
+                if (existingOpt.isPresent()) {
+                    NikuniPompaTechnologyTranslation existing = existingOpt.get();
+                    return excludeTranslationId == null || !existing.getId().equals(excludeTranslationId);
+                }
+                return false;
+            },
+            excludeTranslationId
+        );
+
+        translation.setSlug(slug);
+        
+        // SEO alanları
+        translation.setSeoTitle(seoTitle);
+        translation.setSeoDescription(seoDescription);
+        translation.setSeoKeywords(seoKeywords);
+        translation.setSeoOgTitle(seoOgTitle);
+        translation.setSeoOgDescription(seoOgDescription);
+        translation.setSeoOgImage(seoOgImage);
+
+        return translationRepository.save(translation);
+    }
+
+    public NikuniPompaTechnologyCatalog addOrUpdateCatalog(Long technologyId, String name, String fileUrl) {
+        NikuniPompaTechnology tech = technologyRepository.findById(technologyId)
+                .orElseThrow(() -> new RuntimeException("Technology bulunamadı: " + technologyId));
+
+        NikuniPompaTechnologyCatalog catalog = catalogRepository.findByTechnology(tech)
+                .stream()
+                .filter(c -> c.getName().equals(name))
+                .findFirst()
+                .orElse(new NikuniPompaTechnologyCatalog());
+
+        catalog.setTechnology(tech);
+        catalog.setName(name);
+        catalog.setFileUrl(fileUrl);
+
+        return catalogRepository.save(catalog);
+    }
+
+    public void deleteCatalog(Long catalogId) {
+        NikuniPompaTechnologyCatalog catalog = catalogRepository.findById(catalogId)
+                .orElseThrow(() -> new RuntimeException("Katalog bulunamadı: " + catalogId));
+        catalogRepository.delete(catalog);
+    }
+
+    // File upload - PDF'ler Cloudinary'ye yüklenir, backend proxy ile serve edilir
+    public String uploadFile(MultipartFile file) {
+        try {
+            String fileName = file.getOriginalFilename();
+            if (fileName == null) {
+                throw new RuntimeException("Dosya adı bulunamadı");
+            }
+            
+            boolean isPdf = fileName.toLowerCase().endsWith(".pdf") || 
+                           (file.getContentType() != null && file.getContentType().equals("application/pdf"));
+            
+            // PDF dosyaları için raw resource type kullan
+            String resourceType = isPdf ? "raw" : "auto";
+            
+            // Cloudinary'ye yükle
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "nikunipompa/technologies",
+                            "overwrite", true,
+                            "resource_type", resourceType,
+                            "access_mode", "public"
+                    ));
+            
+            String cloudinaryUrl = uploadResult.get("secure_url").toString();
+            
+            // PDF ise, backend proxy URL'ini döndür (doğru headers ile serve edilsin)
+            if (isPdf) {
+                // Cloudinary'den direkt public_id'yi al (daha güvenilir)
+                String publicId = uploadResult.get("public_id").toString();
+                // public_id'yi URL-safe hale getir (slash'ları underscore'a çevir)
+                String urlSafePublicId = publicId.replace("/", "_");
+                System.out.println("PDF Upload - public_id: " + publicId);
+                System.out.println("PDF Upload - urlSafePublicId: " + urlSafePublicId);
+                return "/api/nikuni-pompa/technologies/files/" + urlSafePublicId;
+            }
+            
+            // Resimler için direkt Cloudinary URL'ini döndür
+            return cloudinaryUrl;
+        } catch (IOException e) {
+            throw new RuntimeException("Dosya yüklenemedi: " + e.getMessage());
+        }
+    }
+    
+    // PDF dosyasını Cloudinary'den oku ve serve et
+    public byte[] getPdfFile(String urlSafePublicId) throws IOException {
+        try {
+            // URL-safe public_id'yi geri çevir (folder/file formatına)
+            // Örnek: nikunipompa_technologies_ciyltgjke8yhpflxguay -> nikunipompa/technologies/ciyltgjke8yhpflxguay
+            String cloudinaryPublicId = urlSafePublicId.replace("_", "/");
+            
+            System.out.println("PDF Request - urlSafePublicId: " + urlSafePublicId);
+            System.out.println("PDF Request - cloudinaryPublicId: " + cloudinaryPublicId);
+            
+            // Cloudinary'den PDF'i indir - secure URL kullan, format belirtme (Cloudinary otomatik anlar)
+            String url = cloudinary.url()
+                    .resourceType("raw")
+                    .secure(true)
+                    .generate(cloudinaryPublicId);
+            
+            System.out.println("PDF Request - Cloudinary URL: " + url);
+            
+            // URL'den dosyayı indir
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(30000);
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+            
+            int responseCode = connection.getResponseCode();
+            System.out.println("PDF Request - Response Code: " + responseCode);
+            
+            if (responseCode != 200) {
+                String errorMessage = "Cloudinary'den PDF alınamadı. Response Code: " + responseCode;
+                try (java.io.InputStream errorStream = connection.getErrorStream()) {
+                    if (errorStream != null) {
+                        String errorBody = new String(errorStream.readAllBytes());
+                        errorMessage += " - Error: " + errorBody;
+                        System.err.println(errorMessage);
+                    }
+                }
+                throw new IOException(errorMessage);
+            }
+            
+            try (java.io.InputStream in = connection.getInputStream()) {
+                byte[] data = in.readAllBytes();
+                System.out.println("PDF Request - File size: " + data.length + " bytes");
+                if (data.length == 0) {
+                    throw new IOException("PDF dosyası boş");
+                }
+                return data;
+            }
+        } catch (java.net.SocketTimeoutException e) {
+            System.err.println("PDF Timeout Error: " + e.getMessage());
+            throw new IOException("PDF Cloudinary'den alınırken zaman aşımı oluştu: " + e.getMessage(), e);
+        } catch (java.io.FileNotFoundException e) {
+            System.err.println("PDF File Not Found: " + e.getMessage());
+            throw new IOException("PDF Cloudinary'de bulunamadı. Public ID: " + urlSafePublicId, e);
+        } catch (Exception e) {
+            System.err.println("PDF Error: " + e.getMessage());
+            e.printStackTrace();
+            throw new IOException("PDF Cloudinary'den alınamadı: " + e.getMessage(), e);
+        }
+    }
+
+    // Sıralama Güncelle
+    @Transactional
+    public void reorderTechnologies(List<ReorderItem> items) {
+        for (ReorderItem item : items) {
+            NikuniPompaTechnology technology = technologyRepository.findById(item.getId())
+                    .orElseThrow(() -> new RuntimeException("Technology bulunamadı: " + item.getId()));
+            technology.setDisplayOrder(item.getDisplayOrder());
+            technologyRepository.save(technology);
+        }
+    }
+
+    @lombok.Data
+    public static class ReorderItem {
+        private Long id;
+        private Integer displayOrder;
+    }
+
+    private TechnologyDTO toDTO(NikuniPompaTechnology entity) {
+        TechnologyDTO dto = new TechnologyDTO();
+        dto.setId(entity.getId());
+        dto.setActive(entity.isActive());
+        dto.setImageUrl(entity.getImageUrl());
+        dto.setTextContent(entity.getTextContent());
+        dto.setDisplayOrder(entity.getDisplayOrder());
+
+        dto.setTranslations(translationRepository.findByTechnology(entity)
+                .stream()
+                .map(t -> {
+                    TechnologyDTO.TechnologyTranslationDTO tdto = new TechnologyDTO.TechnologyTranslationDTO();
+                    tdto.setLangCode(t.getLanguage().getCode());
+                    tdto.setTitle(t.getTitle());
+                    tdto.setDescription(t.getDescription());
+                    tdto.setFeaturesDescription(t.getFeaturesDescription());
+                    tdto.setSlug(t.getSlug());
+                    tdto.setSeoTitle(t.getSeoTitle());
+                    tdto.setSeoDescription(t.getSeoDescription());
+                    tdto.setSeoKeywords(t.getSeoKeywords());
+                    tdto.setSeoOgTitle(t.getSeoOgTitle());
+                    tdto.setSeoOgDescription(t.getSeoOgDescription());
+                    tdto.setSeoOgImage(t.getSeoOgImage());
+                    return tdto;
+                }).collect(Collectors.toList()));
+
+        dto.setCatalogs(catalogRepository.findByTechnology(entity)
+                .stream()
+                .map(c -> {
+                    TechnologyDTO.TechnologyCatalogDTO cdto = new TechnologyDTO.TechnologyCatalogDTO();
+                    cdto.setId(c.getId());
+                    cdto.setName(c.getName());
+                    cdto.setFileUrl(c.getFileUrl());
+                    return cdto;
+                }).collect(Collectors.toList()));
+
+        return dto;
+    }
+}
+

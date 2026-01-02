@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/stats")
+@RequestMapping("/api/nikutek/stats")
 public class StatsController {
 
     private final VisitRepository visitRepository;
