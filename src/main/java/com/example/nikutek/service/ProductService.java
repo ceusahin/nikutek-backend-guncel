@@ -93,6 +93,9 @@ public class ProductService {
 
         product.setImageUrl(dto.getImageUrl());
         product.setActive(dto.isActive());
+        if (dto.getDisplayOrder() != null) {
+            product.setDisplayOrder(dto.getDisplayOrder());
+        }
 
         product = productRepository.save(product);
 
