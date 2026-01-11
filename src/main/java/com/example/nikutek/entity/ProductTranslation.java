@@ -23,7 +23,7 @@ public class ProductTranslation {
     @Column(nullable = false)
     private String title;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "slug", unique = true)
