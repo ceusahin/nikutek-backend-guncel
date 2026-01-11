@@ -377,14 +377,32 @@ public class ProductService {
     // 🔸 Sıralama güncelle (sadece parent ürünler için)
     @Transactional
     public void reorderProducts(List<ReorderItem> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        
+        // İlk item'dan parentId'yi kontrol et (tüm item'lar aynı parent'a ait olmalı)
+        Long expectedParentId = items.get(0).getParentId();
+        
         for (ReorderItem item : items) {
             Product product = productRepository.findById(item.getId())
                     .orElseThrow(() -> new RuntimeException("Ürün bulunamadı: " + item.getId()));
             
-            // Güvenlik: Sadece parent ürünleri güncelle
-            if (product.getParent() == null) {
-                product.setDisplayOrder(item.getDisplayOrder());
-                productRepository.save(product);
+            // Eğer parentId belirtilmişse, alt ürünleri güncelle
+            if (expectedParentId != null) {
+                // Alt ürün kontrolü: product'ın parent'ı expectedParentId ile eşleşmeli
+                if (product.getParent() != null && product.getParent().getId().equals(expectedParentId)) {
+                    product.setDisplayOrder(item.getDisplayOrder());
+                    productRepository.save(product);
+                } else {
+                    throw new RuntimeException("Ürün " + item.getId() + " belirtilen parent (" + expectedParentId + ") altında değil");
+                }
+            } else {
+                // ParentId yoksa, sadece parent ürünleri güncelle
+                if (product.getParent() == null) {
+                    product.setDisplayOrder(item.getDisplayOrder());
+                    productRepository.save(product);
+                }
             }
         }
     }
@@ -393,6 +411,7 @@ public class ProductService {
     public static class ReorderItem {
         private Long id;
         private Integer displayOrder;
+        private Long parentId; // Alt ürünler için parent ID (opsiyonel)
     }
 
     // 🔸 Circular reference kontrolü
