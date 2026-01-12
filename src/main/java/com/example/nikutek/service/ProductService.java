@@ -225,19 +225,43 @@ public class ProductService {
     // 🔸 File upload - PDF'ler Cloudinary'ye yüklenir, backend proxy ile serve edilir
     public String uploadFile(MultipartFile file) {
         try {
+            // Dosya kontrolü
+            if (file == null || file.isEmpty()) {
+                System.err.println("Upload Error: Dosya boş veya null");
+                throw new RuntimeException("Dosya boş veya null");
+            }
+            
             String fileName = file.getOriginalFilename();
             if (fileName == null) {
+                System.err.println("Upload Error: Dosya adı bulunamadı");
                 throw new RuntimeException("Dosya adı bulunamadı");
+            }
+            
+            long fileSize = file.getSize();
+            System.out.println("Upload başladı - Dosya: " + fileName + ", Boyut: " + fileSize + " bytes (" + (fileSize / 1024 / 1024.0) + " MB)");
+            
+            // Dosya boyutu kontrolü (100MB limit)
+            long maxSize = 100 * 1024 * 1024; // 100MB
+            if (fileSize > maxSize) {
+                String errorMsg = "Dosya boyutu çok büyük! Maksimum: 100MB, Mevcut: " + (fileSize / 1024 / 1024.0) + "MB";
+                System.err.println("Upload Error: " + errorMsg);
+                throw new RuntimeException(errorMsg);
             }
             
             boolean isPdf = fileName.toLowerCase().endsWith(".pdf") || 
                            (file.getContentType() != null && file.getContentType().equals("application/pdf"));
             
+            System.out.println("Dosya tipi: " + (isPdf ? "PDF" : "Resim") + ", Content-Type: " + file.getContentType());
+            
             // PDF dosyaları için raw resource type kullan
             String resourceType = isPdf ? "raw" : "auto";
             
             // Cloudinary'ye yükle
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
+            System.out.println("Cloudinary'ye yükleniyor...");
+            byte[] fileBytes = file.getBytes();
+            System.out.println("Dosya byte array'e dönüştürüldü, boyut: " + fileBytes.length + " bytes");
+            
+            Map uploadResult = cloudinary.uploader().upload(fileBytes,
                     ObjectUtils.asMap(
                             "folder", "nikutek/products",
                             "overwrite", true,
@@ -245,6 +269,7 @@ public class ProductService {
                             "access_mode", "public"
                     ));
             
+            System.out.println("Cloudinary upload başarılı");
             String cloudinaryUrl = uploadResult.get("secure_url").toString();
             
             // PDF ise, backend proxy URL'ini döndür (doğru headers ile serve edilsin)
@@ -259,9 +284,16 @@ public class ProductService {
             }
             
             // Resimler için direkt Cloudinary URL'ini döndür
+            System.out.println("Upload başarılı - URL: " + cloudinaryUrl);
             return cloudinaryUrl;
         } catch (IOException e) {
-            throw new RuntimeException("Dosya yüklenemedi: " + e.getMessage());
+            System.err.println("Upload IOException: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Dosya yüklenemedi: " + e.getMessage() + " (IOException)", e);
+        } catch (Exception e) {
+            System.err.println("Upload Genel Hata: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Dosya yüklenirken beklenmeyen hata: " + e.getMessage(), e);
         }
     }
     

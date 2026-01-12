@@ -63,7 +63,23 @@ public class ProductController {
     // 🔸 File upload - PDF'ler local'e, resimler Cloudinary'ye
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok(productService.uploadFile(file));
+        try {
+            System.out.println("Upload endpoint çağrıldı - Dosya: " + (file != null ? file.getOriginalFilename() : "null") + 
+                             ", Boyut: " + (file != null ? file.getSize() : 0) + " bytes");
+            String result = productService.uploadFile(file);
+            System.out.println("Upload başarılı - Sonuç: " + result);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            System.err.println("Upload Controller Error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("Dosya yüklenirken hata: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Upload Controller Unexpected Error: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("Dosya yüklenirken beklenmeyen hata: " + e.getMessage());
+        }
     }
     
     // PDF dosyasını serve et
